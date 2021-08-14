@@ -16,5 +16,5 @@ local function check()
   vim.fn.jobstart(command)
 
 return {
-    check=check
+  check=check
 }
