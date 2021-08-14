@@ -8,7 +8,6 @@ begin
 A: alice_account := alice_account - money;
 B: bob_account := bob_account + money;
 end algorithm; *)
-
 \* BEGIN TRANSLATION (chksum(pcal) = "eab4de28" /\ chksum(tla) = "39fadbe7")
 VARIABLES alice_account, bob_account, money, pc
 
@@ -41,4 +40,5 @@ Spec == Init /\ [][Next]_vars
 Termination == <>(pc = "Done")
 
 \* END TRANSLATION 
+
 ====
