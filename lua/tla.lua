@@ -64,12 +64,7 @@ local function translate(filepath, extension)
   vim.fn.jobstart(command)
 end
 
-local function foo()
-  print("bar")
-end
-
 return {
   check = check,
   translate = translate,
-  foo = foo
 }
