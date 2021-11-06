@@ -12,3 +12,4 @@ vim.api.nvim_set_keymap('n', ',r', '<cmd>luafile dev/init.lua<cr>', {})
 
 -- [ , + c ] keymap to run check function
 vim.api.nvim_set_keymap('n', ',c', '<cmd>lua require("tla").check()<cr>', {})
+vim.api.nvim_set_keymap('n', ',t', '<cmd>lua require("tla").translate()<cr>', {})
