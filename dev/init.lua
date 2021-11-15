@@ -1,7 +1,9 @@
 -- force lua to import the modules again
 package.loaded['dev'] = nil
 package.loaded['tla'] = nil
+package.loaded['tla.utils'] = nil
 print('loadeded tla')
+require('tla').setup()
 
 -- [ , + r ] keymap to reload the lua file
 -- NOTE: someone need to source this file to apply these configurations. So, the
