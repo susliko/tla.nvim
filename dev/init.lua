@@ -1,7 +1,9 @@
 -- force lua to import the modules again
 package.loaded['dev'] = nil
 package.loaded['tla'] = nil
+package.loaded['tla.check'] = nil
 package.loaded['tla.utils'] = nil
+package.loaded['tla.parser'] = nil
 print('loadeded tla')
 require('tla').setup()
 

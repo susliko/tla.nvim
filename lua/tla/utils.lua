@@ -23,12 +23,14 @@ M.get_or_create_output_buf = function(filepath)
   local buf_name = filepath .. ' '
   for _, buf in pairs(vim.api.nvim_list_bufs()) do
     if buf_name == vim.api.nvim_buf_get_name(buf) then
+      vim.bo[buf].filetype = 'help'
       return buf
     end
   end
 
   local output_buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_name(output_buf, buf_name)
+  vim.bo[output_buf].filetype = 'help'
 
   return output_buf
 end
