@@ -1,13 +1,5 @@
 local M = {}
 
-M.concat_arrays = function(a, b)
-  a = vim.deepcopy(a)
-  for i=1,#b do
-      a[#a+1] = b[i]
-  end
-  return a
-end
-
 M.get_current_file_path = function()
   return vim.api.nvim_buf_get_name(0):gsub('^%s+', ''):gsub('%s+$', '')
 end
@@ -41,8 +33,7 @@ M.focus_output_win = function(output_buf)
     vim.api.nvim_command('vsp')
     local win = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(win, output_buf)
-  else
-    vim.fn.win_gotoid(output_wins[1])
+    vim.api.nvim_command('wincmd p')
   end
 end
 

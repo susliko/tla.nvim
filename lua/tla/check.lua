@@ -5,19 +5,20 @@ local parser = require('tla.parser')
 local M = {}
 
 local state = {
-  tags_files = {},
+  tag_files = {},
+  tag_file_contents = {},
 }
 
-local function print_parsed_message(parsed, buf, tags_file)
+local function print_parsed_message(parsed, buf)
   if not parsed then return end
   if parsed.tag then
-    tags_file:write(parsed.tag)
-    parsed.tag = nil
+    table.insert(state.tag_file_contents, parsed.tag)
+  else
+    utils.append_to_buf(buf, parsed)
   end
-  utils.append_to_buf(buf, parsed)
 end
 
-local function on_output(buf, tags_file, tla_file, message, config)
+local function on_output(buf, tla_file, message, config)
   return vim.schedule_wrap(function(err, output)
     if err then
       utils.append_to_buf(buf, { 'Error: ' .. err })
@@ -34,9 +35,8 @@ local function on_output(buf, tags_file, tla_file, message, config)
             message.type,
           })
         end
-
         local parsed = parser.parse_msg(message, tla_file)
-        print_parsed_message(parsed, buf, tags_file)
+        print_parsed_message(parsed, buf)
         message.lines = {}; message.type = {}
       else
         table.insert(message.lines, output)
@@ -45,12 +45,23 @@ local function on_output(buf, tags_file, tla_file, message, config)
   end)
 end
 
-local function open_tags_file(tla_file_path)
-  local tags_file_path = state.tags_files[tla_file_path] or os.tmpname()
-  state.tags_files[tla_file_path] = tags_file_path
-  local tags_file = io.open(tags_file_path, 'w')
-  vim.opt_global.tags:append(tags_file_path)
-  return tags_file
+local function register_tags(tla_file_path)
+  local tag_file_path = nil
+  if state.tag_files[tla_file_path] then
+    tag_file_path = state.tag_files[tla_file_path]
+  else
+    tag_file_path = os.tmpname()
+    vim.opt_global.tags:append(tag_file_path)
+  end
+  state.tag_files[tla_file_path] = tag_file_path
+  local tag_file = io.open(tag_file_path, 'w+')
+  table.sort(state.tag_file_contents, function (a, b) return a:lower() < b:lower() end)
+  local tags = table.concat(state.tag_file_contents, '')
+  dump(tag_file_path)
+  tag_file:write(tags)
+  tag_file:flush()
+  tag_file.close()
+  state.tag_file_contents = {}
 end
 
 M.make_check_job = function(tla_file_path, job_args, config)
@@ -60,9 +71,8 @@ M.make_check_job = function(tla_file_path, job_args, config)
   utils.focus_output_win(output_buf)
 
   local command = config.java_executable
-  local tags_file = open_tags_file(tla_file_path)
 
-  local args = utils.concat_arrays(config.java_opts, job_args)
+  local args = vim.tbl_flatten({config.java_opts, job_args})
   utils.print_command_to_buf(output_buf, command, args)
 
   local output_message = {
@@ -70,13 +80,13 @@ M.make_check_job = function(tla_file_path, job_args, config)
     type = nil
   }
 
-  local on_result = on_output(output_buf, tags_file, tla_file_path, output_message, config)
+  local on_result = on_output(output_buf, tla_file_path, output_message, config)
   return Job:new({
     command = command,
     args = args,
     on_stdout = on_result,
     on_error = on_result,
-    on_exit = vim.schedule_wrap(function() tags_file:close() end)
+    on_exit = vim.schedule_wrap(function() register_tags(tla_file_path) end)
   })
 end
 

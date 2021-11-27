@@ -47,7 +47,7 @@ M.translate = function()
     'pcal.trans',
     tla_file_path
   }
-  local args = utils.concat_arrays(M.config.java_opts, translate_args)
+  local args = vim.tbl_flatten({M.config.java_opts, translate_args})
   utils.print_command_to_buf(bufnr, command, args)
 
   local on_result = vim.schedule_wrap(function(err, output)

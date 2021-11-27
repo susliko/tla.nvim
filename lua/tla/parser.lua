@@ -23,17 +23,16 @@ local MessageType = {
 local Pattern = {
   MsgStart = '@!@!@STARTMSG (%d+).*',
   MsgEnd = '@!@!@ENDMSG (%d+).*',
-  Action = '<(%a+) line (%d+), col (%d+) .* module (%a+)>',
+  Step = '<(%a+) line (%d+), col (%d+) .* module (%a+)%s*.*>',
   InvariantViolated = '(Invariant )(%a+)( is violated.)',
   Coverage = ': (%d+):(%d+)',
 }
 
-local Action = {}
-function Action:new(name, file, line, column, module)
+local TlaStep = {}
+function TlaStep:new(name, file, line, column)
   local a = {
     name = name,
     position = {
-      module = module,
       file = file,
       line = line,
       column = column
@@ -43,7 +42,7 @@ function Action:new(name, file, line, column, module)
   return a
 end
 
-function Action:to_tag_string()
+function TlaStep:to_tag_string()
   return string.format(
     '%s\t%s\tnorm %sG%s|\n',
     self.name,
@@ -53,34 +52,38 @@ function Action:to_tag_string()
   )
 end
 
-function Action:to_string()
+function TlaStep:to_string()
   return string.format( '|%s|', self.name)
 end
 
 local function parse_coverage(message_lines, tla_file)
-  local action_name, line, column, module, distinct, total =
-    string.match(message_lines[1], Pattern.Action .. Pattern.Coverage)
-  local action = Action:new(action_name, tla_file, line, column, module)
+  local step_name, line, column, module, distinct, total =
+    string.match(message_lines[1], Pattern.Step .. Pattern.Coverage)
+  local module_dir, _ = tla_file:match('(.*)/(.*).tla')
+  local module_file = string.format('%s/%s.tla', module_dir, module)
+  local step = TlaStep:new(step_name, module_file, line, column)
   return {
     string.format(
       '%s distinct: %d, total %d',
-      action:to_string(),
+      step:to_string(),
       distinct,
       total
     ),
-    tag = action:to_tag_string()
+    tag = step:to_tag_string()
   }
 end
 
 local function parse_tag(lines, tla_file)
-  local action_name, line, column, module =
-    string.match(lines[1], Pattern.Action)
-  local action = Action:new(action_name, tla_file, line, column, module)
-  return { tag = action:to_tag_string() }
+  local step_name, line, column, module =
+    string.match(lines[1], Pattern.Step)
+  local module_dir, _ = tla_file:match('(.*)/(.*).tla')
+  local module_file = string.format('%s/%s.tla', module_dir, module)
+  local step = TlaStep:new(step_name, module_file, line, column)
+  return { tag = step:to_tag_string() }
 end
 
 local function parse_state(message_lines)
-  message_lines[1] = string.gsub(message_lines[1], Pattern.Action, '|%1|')
+  message_lines[1] = string.gsub(message_lines[1], Pattern.Step, '|%1|')
   return message_lines
 end
 
@@ -101,39 +104,34 @@ M.parse_msg_end = function(str) return string.match(str, Pattern.MsgEnd) end
 M.parse_msg = function(message, tla_file)
   local parsed = nil
 
-  if (message.type == MessageType.Coverage
-      or message.type == MessageType.CoverageInit
-     ) then
+  if (message.type == MessageType.Coverage or
+      message.type == MessageType.CoverageInit) then
     parsed = parse_coverage(message.lines, tla_file)
 
   elseif message.type == MessageType.CoverageEnd then
     table.insert(message.lines, '')
     parsed = message.lines
 
-  elseif (message.type == MessageType.Finished
-          or message.type == MessageType.Starting
-         ) then
+  elseif (message.type == MessageType.Finished or
+          message.type == MessageType.Starting) then
     table.insert(message.lines, 1, '')
     parsed = message.lines
 
   elseif message.type == MessageType.State then
     parsed = parse_state(message.lines)
 
-  elseif (message.type == MessageType.CoverageProperty
-          or message.type == MessageType.CoverageConstraint
-         ) then
+  elseif (message.type == MessageType.CoverageProperty or
+          message.type == MessageType.CoverageConstraint) then
     parsed = parse_tag(message.lines, tla_file)
 
   elseif message.type == MessageType.InvariantViolated then
     parsed = parse_invariant_violated(message.lines)
 
-  elseif (message.type == MessageType.CoverageValue
-          or message.type == MessageType.CoverageValueCost
-         ) then
+  elseif (message.type == MessageType.CoverageValue or
+          message.type == MessageType.CoverageValueCost) then
     parsed = nil
 
-  else
-    parsed = message.lines
+  else parsed = message.lines
   end
 
   return parsed
