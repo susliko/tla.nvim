@@ -59,6 +59,7 @@ describe('tlc output parser should parse message:', function ()
        'contents = [j1 |-> 0, j2 |-> 5]',
        ''}
     ),
+    Unknown = mk_msg('UnknownCode', {'unknown text'})
   }
 
 
@@ -101,4 +102,5 @@ describe('tlc output parser should parse message:', function ()
 
   msg_ok('State', Message.State, {'2: |Step1|', 'contents = [j1 |-> 0, j2 |-> 5]', ''})
 
+  msg_ok('Unknown', Message.Unknown, {'unknown text'})
 end)
