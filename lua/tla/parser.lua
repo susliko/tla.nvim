@@ -1,39 +1,36 @@
+local utils = require('tla.utils')
+
 local M = {}
 
-local MessageType = {
-  CoverageStart = '2201',
-  CoverageEnd   = '2202',
-
-  InvariantViolated = '2110';
-
-  Starting = '2185';
-  Finished = '2186';
-
-  State = '2217',
-
-  CoverageValue = '2221',
-
+local MessageKind = {
   Coverage      = '2772',
+  CoverageConstraint = '2778',
+  CoverageEnd   = '2202',
   CoverageInit  = '2773',
   CoverageProperty = '2774',
+  CoverageValue = '2221',
   CoverageValueCost = '2775',
-  CoverageConstraint = '2778',
+  Finished = '2186';
+  InvariantViolated = '2110';
+  State = '2217',
 }
+M.MessageKind = MessageKind
 
 local Pattern = {
   MsgStart = '@!@!@STARTMSG (%d+).*',
   MsgEnd = '@!@!@ENDMSG (%d+).*',
-  Step = '<(%a+) line (%d+), col (%d+) .* module (%a+)%s*.*>',
-  InvariantViolated = '(Invariant )(%a+)( is violated.)',
+  Decl = '<([%a%d]+) line (%d+), col (%d+) .* module (%a+)%s*.*>',
+  InvariantViolated = '(Invariant )([%a%d]+)( is violated.)',
   Coverage = ': (%d+):(%d+)',
 }
 
-local TlaStep = {}
-function TlaStep:new(name, file, line, column)
+-- Encodes declaration in TLA file
+local TlaDecl = {}
+function TlaDecl:new(name, module, line, column)
   local a = {
     name = name,
     position = {
-      file = file,
+      module = module,
       line = line,
       column = column
     }
@@ -42,99 +39,109 @@ function TlaStep:new(name, file, line, column)
   return a
 end
 
-function TlaStep:to_tag_string()
-  return string.format(
-    '%s\t%s\tnorm %sG%s|\n',
+function TlaDecl:to_tag_string(tla_file_path)
+  local module_dir = tla_file_path:match('(.*)/.*.tla')
+  local module_file = string.format('%s/%s.tla', module_dir, self.position.module)
+  return string.format('%s\t%s\tnorm %sG%s|\n',
     self.name,
-    self.position.file,
+    module_file,
     self.position.line,
     self.position.column
   )
 end
 
-function TlaStep:to_string()
-  return string.format( '|%s|', self.name)
+function TlaDecl:to_string()
+  return '|' .. self.name .. '|'
 end
 
-local function parse_coverage(message_lines, tla_file)
-  local step_name, line, column, module, distinct, total =
-    string.match(message_lines[1], Pattern.Step .. Pattern.Coverage)
-  local module_dir, _ = tla_file:match('(.*)/(.*).tla')
-  local module_file = string.format('%s/%s.tla', module_dir, module)
-  local step = TlaStep:new(step_name, module_file, line, column)
+local function parse_coverage(lines)
+  local decl_name, line, column, module, distinct, total =
+    string.match(lines[1], Pattern.Decl .. Pattern.Coverage)
+  local decl = TlaDecl:new(decl_name, module, line, column)
   return {
-    string.format(
-      '%s distinct: %d, total %d',
-      step:to_string(),
-      distinct,
-      total
-    ),
-    tag = step:to_tag_string()
+    msg = { string.format('%s distinct: %d, total %d', decl:to_string(), distinct, total) },
+    decl = decl
   }
 end
 
-local function parse_tag(lines, tla_file)
-  local step_name, line, column, module =
-    string.match(lines[1], Pattern.Step)
-  local module_dir, _ = tla_file:match('(.*)/(.*).tla')
-  local module_file = string.format('%s/%s.tla', module_dir, module)
-  local step = TlaStep:new(step_name, module_file, line, column)
-  return { tag = step:to_tag_string() }
+local function parse_decl(lines)
+  local decl_name, line, column, module = string.match(lines[1], Pattern.Decl)
+  local decl = TlaDecl:new(decl_name, module, line, column)
+  return {decl = decl}
 end
 
-local function parse_state(message_lines)
-  message_lines[1] = string.gsub(message_lines[1], Pattern.Step, '|%1|')
-  return message_lines
+local function parse_state(lines)
+  lines[1] = string.gsub(lines[1], Pattern.Decl, '|%1|')
+  return {msg = lines}
 end
 
-local function parse_invariant_violated(message_lines)
-  message_lines[1] = string.gsub(
-    message_lines[1],
-    Pattern.InvariantViolated,
-    '%1|%2|%3'
-  )
-  return message_lines
+local function parse_invariant_violated(lines)
+  lines[1] = string.gsub(lines[1], Pattern.InvariantViolated, '%1|%2|%3')
+  return {msg = lines}
 end
 
+-- If `str` matches message start pattern, returns message code
 M.parse_msg_start = function(str) return string.match(str, Pattern.MsgStart) end
+
+-- If `str` matches message end pattern, returns message code
 M.parse_msg_end = function(str) return string.match(str, Pattern.MsgEnd) end
 
--- returns a table of lines than will be added to output buffer
--- table may have optional `tag` field
-M.parse_msg = function(message, tla_file)
-  local parsed = nil
+local ResultKind = utils.enum { 'Unparsed', 'Parsed', 'Skipped' }
+M.ResultKind = ResultKind
 
-  if (message.type == MessageType.Coverage or
-      message.type == MessageType.CoverageInit) then
-    parsed = parse_coverage(message.lines, tla_file)
-
-  elseif message.type == MessageType.CoverageEnd then
-    table.insert(message.lines, '')
-    parsed = message.lines
-
-  elseif (message.type == MessageType.Finished or
-          message.type == MessageType.Starting) then
-    table.insert(message.lines, 1, '')
-    parsed = message.lines
-
-  elseif message.type == MessageType.State then
-    parsed = parse_state(message.lines)
-
-  elseif (message.type == MessageType.CoverageProperty or
-          message.type == MessageType.CoverageConstraint) then
-    parsed = parse_tag(message.lines, tla_file)
-
-  elseif message.type == MessageType.InvariantViolated then
-    parsed = parse_invariant_violated(message.lines)
-
-  elseif (message.type == MessageType.CoverageValue or
-          message.type == MessageType.CoverageValueCost) then
-    parsed = nil
-
-  else parsed = message.lines
+-- Returns table:
+-- {
+--   kind = ResultKind.X,
+--   msg = { ... }, # optinal array of strings: output useful to the user
+--   tag = '...',   # optinal string: entry for the tag file, which powers go to definition
+-- }
+M.parse_msg = function(message, tla_file_path)
+  local result = { kind = ResultKind.Unparsed, msg = {} }
+  local function skip() result.kind = ResultKind.Skipped end
+  local function pass()
+    result.kind = ResultKind.Parsed
+    result.msg = message.lines
+  end
+  local function update(outcome)
+    if outcome then
+      result.kind = ResultKind.Parsed
+      result.msg = outcome.msg
+      if outcome.decl then
+        result.tag = outcome.decl:to_tag_string(tla_file_path)
+      end
+    end
   end
 
-  return parsed
+  if (message.kind == MessageKind.Coverage or
+      message.kind == MessageKind.CoverageInit) then
+    update(parse_coverage(message.lines))
+
+  elseif message.kind == MessageKind.CoverageEnd then
+    table.insert(message.lines, '')
+    pass()
+
+  elseif message.kind == MessageKind.State then
+    update(parse_state(message.lines))
+
+  elseif (message.kind == MessageKind.CoverageProperty or
+          message.kind == MessageKind.CoverageConstraint) then
+    update(parse_decl(message.lines))
+
+  elseif (message.kind == MessageKind.CoverageValue or
+          message.kind == MessageKind.CoverageValueCost) then
+    skip()
+
+  elseif message.kind == MessageKind.InvariantViolated then
+    update(parse_invariant_violated(message.lines))
+
+  elseif (message.kind == MessageKind.Finished) then
+    table.insert(message.lines, 1, '')
+    pass()
+
+  else pass()
+  end
+
+  return result
 end
 
 return M

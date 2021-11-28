@@ -1,4 +1,8 @@
+local Path = require('plenary.path')
+
 local M = {}
+
+M.tla_nvim_cache_dir = Path.new(vim.fn.stdpath("cache"), "tla.nvim")
 
 M.get_current_file_path = function()
   return vim.api.nvim_buf_get_name(0):gsub('^%s+', ''):gsub('%s+$', '')
@@ -27,7 +31,7 @@ M.get_or_create_output_buf = function(filepath)
   return output_buf
 end
 
-M.focus_output_win = function(output_buf)
+M.open_output_win = function(output_buf)
   local output_wins = vim.fn.win_findbuf(output_buf)
   if #output_wins == 0 then
     vim.api.nvim_command('vsp')
@@ -48,6 +52,15 @@ end
 M.print_command_to_buf = function(output_buf, command, args)
   local args_str = table.concat(args, ' ')
   M.append_to_buf(output_buf, { 'Executing command:', command .. ' ' ..  args_str, '' })
+end
+
+M.enum = function(tbl)
+  local length = #tbl
+  for i = 1, length do
+    local v = tbl[i]
+    tbl[v] = i
+  end
+  return tbl
 end
 
 return M

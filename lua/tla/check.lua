@@ -1,6 +1,7 @@
 local Job = require('plenary.job')
 local utils = require('tla.utils')
 local parser = require('tla.parser')
+local ResultKind = parser.ResultKind
 
 local M = {}
 
@@ -9,16 +10,22 @@ local state = {
   tag_file_contents = {},
 }
 
-local function print_parsed_message(parsed, buf)
-  if not parsed then return end
-  if parsed.tag then
-    table.insert(state.tag_file_contents, parsed.tag)
-  else
-    utils.append_to_buf(buf, parsed)
+local function print_parsed_message(outcome, buf)
+  if outcome.kind == ResultKind.Unparsed then
+    error("Failed to parse some TLC message")
+    return
+  end
+  if outcome.kind == ResultKind.Parsed then
+    if outcome.tag then
+      table.insert(state.tag_file_contents, outcome.tag)
+    end
+    if outcome.msg then
+      utils.append_to_buf(buf, outcome.msg)
+    end
   end
 end
 
-local function on_output(buf, tla_file, message, config)
+local function on_output(buf, tla_file_path, message, config)
   return vim.schedule_wrap(function(err, output)
     if err then
       utils.append_to_buf(buf, { 'Error: ' .. err })
@@ -26,18 +33,15 @@ local function on_output(buf, tla_file, message, config)
     if output then
       local start_match = parser.parse_msg_start(output)
       if start_match then
-        message.type = start_match
+        message.kind = start_match
       elseif parser.parse_msg_end(output) then
         -- to be able to see which types need to add to parser
-        if config.print_message_type then
-          utils.append_to_buf(buf, {
-            '_____',
-            message.type,
-          })
+        if config.print_message then
+          utils.append_to_buf(buf, { '_____', message.kind })
         end
-        local parsed = parser.parse_msg(message, tla_file)
-        print_parsed_message(parsed, buf)
-        message.lines = {}; message.type = {}
+        local outcome = parser.parse_msg(message, tla_file_path)
+        print_parsed_message(outcome, buf)
+        message.lines = {}; message.kind = {}
       else
         table.insert(message.lines, output)
       end
@@ -57,7 +61,6 @@ local function register_tags(tla_file_path)
   local tag_file = io.open(tag_file_path, 'w+')
   table.sort(state.tag_file_contents, function (a, b) return a:lower() < b:lower() end)
   local tags = table.concat(state.tag_file_contents, '')
-  dump(tag_file_path)
   tag_file:write(tags)
   tag_file:flush()
   tag_file.close()
@@ -68,7 +71,7 @@ M.make_check_job = function(tla_file_path, job_args, config)
   utils.check_filetype_is_tla(tla_file_path)
   local output_buf = utils.get_or_create_output_buf(tla_file_path)
   utils.clear_buf(output_buf)
-  utils.focus_output_win(output_buf)
+  utils.open_output_win(output_buf)
 
   local command = config.java_executable
 
@@ -77,7 +80,7 @@ M.make_check_job = function(tla_file_path, job_args, config)
 
   local output_message = {
     lines = {},
-    type = nil
+    kind = nil
   }
 
   local on_result = on_output(output_buf, tla_file_path, output_message, config)
