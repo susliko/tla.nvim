@@ -1,7 +1,10 @@
 local Job = require('plenary.job')
+local Path = require('plenary.path')
+local Filetype = require('plenary.filetype')
 local utils = require('tla.utils')
 local check = require('tla.check')
 local config = require('tla.config')
+local install = require('tla.install')
 
 local M = {}
 
@@ -63,7 +66,10 @@ end
 
 
 M.setup = function()
-  require('plenary.filetype').add_table({extension = {['tla'] = 'tla'}})
+  Filetype.add_table({extension = {['tla'] = 'tla'}})
+  if not Path:new(config.tla2tools):exists() then
+    install.install_tla2tools()
+  end
 end
 
 return M
