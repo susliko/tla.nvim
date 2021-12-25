@@ -65,10 +65,18 @@ M.translate = function()
 end
 
 
-M.setup = function()
+M.setup = function(user_config)
   Filetype.add_table({extension = {['tla'] = 'tla'}})
+
+  user_config = user_config or {}
+  for key, value in pairs(user_config) do
+    if key == 'java_executable' or key == 'tla2tools' then
+      value = Path:new(value):expand()
+    end
+    config[key] = value
+  end
   if not Path:new(config.tla2tools):exists() then
-    install.install_tla2tools()
+    install.install_tla2tools(config.tla2tools)
   end
 end
 
