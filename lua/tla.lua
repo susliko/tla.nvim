@@ -75,8 +75,8 @@ M.setup = function(user_config)
     end
     config[key] = value
   end
-  if not Path:new(config.tla2tools):exists() then
-    install.install_tla2tools(config.tla2tools)
+  if user_config['tla2tools'] == nil and not Path:new(config.tla2tools):exists() then
+    install.install_tla2tools()
   end
 end
 
