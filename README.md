@@ -1,5 +1,5 @@
 # TLA+/PlusCal support for NeoVim
-`tla.nvim `is a Lua plugin built to provide IDE-like experience while developing
+`tla.nvim` is a Lua plugin built to provide IDE-like experience while developing
 [TLA+](https://lamport.azurewebsites.net/tla/tla.html) and [PlusCal](https://learntla.com/pluscal/) specifications. Powered by official [TLA tooling](https://github.com/tlaplus/tlaplus).
 
 ## Features
@@ -48,11 +48,11 @@ require("tla").setup{
 
 
 ## Commands
-| Command | Description |
-| --- | ----|
-| `TlaInstall` | Downloads latest tla2tools release. Rewrites existing |
-| `TlaTranslate` | Translates PlusCal code in the current buffer into TLA+ code |
-| `TlaCheck` | Model-checks TLA+ code in the current buffer and displays results |
+| Command | Lua API | Description |
+| --- | --- | --- |
+| `TlaInstall` | `require"tla.install".install_tla2tools()` | Downloads latest tla2tools release. Rewrites existing |
+| `TlaTranslate` | `require"tla".translate()` | Translates PlusCal code in the current buffer into TLA+ code |
+| `TlaCheck` | `require"tla".check()` |Model-checks TLA+ code in the current buffer and displays results |
 
 
 ## Demo
