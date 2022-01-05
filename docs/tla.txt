@@ -1,0 +1,50 @@
+*tla.txt* tla.nvim
+A nvim plugin for TLA+/PlusCal development.
+
+                            TLA.NVIM REFERENCE MANUAL
+
+CONTENTS                                                           *tla.nvim*
+
+    0. Introduction ........ |tla-introduction|
+    1. Prerequisites........ |tla-prerequisites|
+    2. Getting Started...... |tla-getting-started|
+    3. Settings............. |tla-settings|
+    4. Commands............. |tla-commands|
+    5. LUA API.............. |tla-lua-api|
+    6. Integrations......... |tla-integrations|
+
+================================================================================
+INTRODUCTION                                                *tla-introduction*
+
+tla.nvim is a Lua plugin built to provide IDE-like experience while developing
+TLA+ and PlusCal specifications. Powered by official TLA tooling.
+
+================================================================================
+PREREQUISITES                                             *tla-prerequisites*
+
+- Neovim >= v0.5.0. While `tla.nvim` will aim to
+  always work with the latest stable version of Neovim, there is no guarantee
+  of compatibility with older versions.
+- Java >= 8. If you have the `JAVA_HOME` environment variable, plugin will
+  work from the start. Otherwise you should specify the location of Java
+  installation.
+- plenary.nvim (https://github.com/nvim-lua/plenary.nvim). Make sure to have
+  this installed
+
+================================================================================
+GETTING STARTED                                           *tla-getting-started*
+todo
+================================================================================
+SETTINGS                                                  *tla-settings*
+todo
+================================================================================
+COMMANDS                                                  *tla-commands*
+todo
+================================================================================
+LUA API                                                   *tla-lua-api*
+todo
+================================================================================
+INTEGRATIONS                                              *tla-integrations*
+todo
+
+vim:tw=80:ts=2:ft=help: 
