@@ -60,5 +60,4 @@ TODO gifs
 
 ## Integrations
 ### Syntax Highlighting
-[tree-sitter](https://github.com/nvim-treesitter/nvim-treesitter) usage for syntax highlighting is encouraged.       
-[The grammar](https://github.com/tlaplus-community/tree-sitter-tlaplus) supports only TLA+ syntax at the moment, but PlusCal syntax is on its way :rocket:.
+[tree-sitter](https://github.com/nvim-treesitter/nvim-treesitter) usage for syntax highlighting is encouraged; [a tree-sitter grammar](https://github.com/tlaplus-community/tree-sitter-tlaplus) exists for TLA+ and PlusCal.
