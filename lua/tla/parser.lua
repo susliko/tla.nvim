@@ -1,4 +1,4 @@
-local utils = require("tla.utils")
+local Utils = require("tla.utils")
 
 local M = {}
 
@@ -84,7 +84,7 @@ M.parse_msg_end = function(str)
 	return string.match(str, Pattern.MsgEnd)
 end
 
-local ResultKind = utils.enum({ "Unparsed", "Parsed", "Skipped" })
+local ResultKind = Utils.enum({ "Unparsed", "Parsed", "Skipped" })
 M.ResultKind = ResultKind
 
 -- Returns table:

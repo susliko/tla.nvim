@@ -1,7 +1,7 @@
 local Job = require("plenary.job")
-local utils = require("tla.utils")
-local parser = require("tla.parser")
-local ResultKind = parser.ResultKind
+local Utils = require("tla.utils")
+local Parser = require("tla.parser")
+local ResultKind = Parser.ResultKind
 
 local M = {}
 
@@ -20,7 +20,7 @@ local function print_parsed_message(outcome, buf)
 			table.insert(state.tag_file_contents, outcome.tag)
 		end
 		if outcome.msg then
-			utils.append_to_buf(buf, outcome.msg)
+			Utils.append_to_buf(buf, outcome.msg)
 		end
 	end
 end
@@ -28,14 +28,14 @@ end
 local function on_output(buf, tla_file_path, message, config)
 	return vim.schedule_wrap(function(err, output)
 		if err then
-			utils.append_to_buf(buf, { "Error: " .. err })
+			Utils.append_to_buf(buf, { "Error: " .. err })
 		end
 		if output then
-			local start_match = parser.parse_msg_start(output)
+			local start_match = Parser.parse_msg_start(output)
 			if start_match then
 				message.kind = start_match
-			elseif parser.parse_msg_end(output) then
-				local outcome = parser.parse_msg(message, tla_file_path)
+			elseif Parser.parse_msg_end(output) then
+				local outcome = Parser.parse_msg(message, tla_file_path)
 				print_parsed_message(outcome, buf)
 				message.lines = {}
 				message.kind = {}
@@ -67,15 +67,15 @@ local function register_tags(tla_file_path)
 end
 
 M.make_check_job = function(tla_file_path, job_args, config)
-	utils.check_filetype_is_tla(tla_file_path)
-	local output_buf = utils.get_or_create_output_buf(tla_file_path)
-	utils.clear_buf(output_buf)
-	utils.open_output_win(output_buf)
+	Utils.check_filetype_is_tla(tla_file_path)
+	local output_buf = Utils.get_or_create_output_buf(tla_file_path)
+	Utils.clear_buf(output_buf)
+	Utils.open_output_win(output_buf)
 
 	local command = config.java_executable
 
 	local args = vim.tbl_flatten({ config.java_opts, job_args })
-	utils.print_command_to_buf(output_buf, command, args)
+	Utils.print_command_to_buf(output_buf, command, args)
 
 	local output_message = {
 		lines = {},
