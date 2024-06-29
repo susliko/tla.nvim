@@ -24,15 +24,36 @@
   this installed
 
 ## Installation
-1. Include the plugin to your config. For example, using [packer](https://github.com/wbthomason/packer.nvim):
+
+
+### [Lazy](https://github.com/folke/lazy.nvim)
+```
+return {
+  "susliko/tla.nvim",
+  config = function ()
+    require("tla") .setup()
+  end
+}
+
+```
+
+### [Packer](https://github.com/wbthomason/packer.nvim)
 ```
 use({"susliko/tla.nvim", requires = { "nvim-lua/plenary.nvim" }})
 ```
-2. Setup the plugin in your `init.lua`:
+
+```
+-- init.lua
+require("tla").setup()
+```
+
+### Configuration
 ```
 require("tla").setup()
 ```
-This is equivalent to:
+
+is equivalent to:
+
 ```
 require("tla").setup{
   -- Path to java binary directory. $JAVA_HOME by default
