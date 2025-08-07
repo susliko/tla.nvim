@@ -21,6 +21,8 @@ M.check = function()
     "-modelcheck",
     "-coverage",
     "1",
+	"-workers",
+	"auto",
     "-config",
     cfg_file_path,
   }
